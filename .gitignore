@@ -1,0 +1,5 @@
+﻿LDVS5-deploy.zip
+supabase/
+node_modules/
+.netlify/
+.DS_Store

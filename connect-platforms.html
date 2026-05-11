@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Connect Platforms — DPT</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <link rel="stylesheet" href="css/theme.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <style>
+    .score-banner { background: linear-gradient(135deg, var(--hero-from), var(--hero-to)); border-radius: var(--radius); padding: 24px 32px; color: #fff; display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+    .score-banner .label { font-size: 12px; opacity: .6; margin-bottom: 4px; } .score-banner .value { font-size: 42px; font-weight: 700; font-family: 'DM Mono', monospace; } .score-banner .grade { font-size: 13px; opacity: .75; margin-top: 4px; } .score-banner .hint { font-size: 12px; opacity: .55; max-width: 260px; line-height: 1.5; }
+    .section-title { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 16px; }
+    .platforms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+    .platform-card { background: var(--surface); border-radius: var(--radius); padding: 22px 24px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: all .2s; }
+    .platform-card:hover { border-color: #c7d2fe; box-shadow: var(--card-hover); } .platform-card.connected { border-color: var(--green); background: #f0fdf4; }
+    .plat-left { display: flex; align-items: center; gap: 14px; } .plat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; background: var(--surface2); }
+    .plat-name { font-size: 14px; font-weight: 600; color: var(--text); } .plat-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .plat-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+    .status-pill { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: #f1f5f9; color: var(--muted); } .status-pill.connected { background: #dcfce7; color: #15803d; }
+    .btn { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; padding: 7px 16px; border-radius: 8px; border: none; cursor: pointer; transition: all .2s; }
+    .btn-connect { background: var(--blue); color: #fff; } .btn-connect:hover { background: #1d4ed8; } .btn-disconnect { background: #fee2e2; color: var(--red); } .btn-save { background: var(--green); color: #fff; margin-top: 8px; padding: 8px 20px; font-size: 13px; }
+    .manual-form { margin-top: 10px; display: none; } .manual-form.show { display: block; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .form-group label { font-size: 11px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 4px; }
+    .form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: var(--text); background: var(--slate, #f8fafc); outline: none; }
+    .metrics-card { background: var(--surface); border-radius: var(--radius); padding: 24px; border: 1.5px solid var(--border); margin-bottom: 24px; } .metrics-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; } .metric-item { text-align: center; } .metric-val { font-size: 28px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--text); } .metric-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; } .metric-bar { height: 4px; border-radius: 2px; background: var(--border); margin-top: 6px; overflow: hidden; } .metric-fill { height: 100%; border-radius: 2px; background: var(--blue); transition: width .6s ease; }
+    .compute-btn { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; padding: 14px 32px; border-radius: 12px; border: none; cursor: pointer; background: linear-gradient(135deg, var(--blue), #1d4ed8); color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,.35); transition: all .2s; display: block; margin: 0 auto; } .compute-btn:hover { transform: translateY(-1px); } .compute-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  </style>
+</head>
+<body>
+<header class="mobile-header" id="mobile-header"></header>
+<nav class="mobile-nav" id="mobile-nav"></nav>
+<aside class="sidebar" id="sidebar" data-page="connect"></aside>
+
+<main class="main">
+  <div class="topbar">
+    <div><h1>Connect Your Platforms</h1><p>Connect your accounts to calculate your LDVS score.</p></div>
+    <div class="lang-toggle"><button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button><button class="lang-btn" id="btn-sw" onclick="setLang('sw')">SW</button></div>
+  </div>
+  <div class="score-banner">
+    <div><div class="label">CURRENT LDVS SCORE</div><div class="value" id="banner-score">—</div><div class="grade" id="banner-grade">Not yet computed</div></div>
+    <div class="hint">Connect platforms below, then click Compute Score.</div>
+  </div>
+  <div class="metrics-card"><h3>📐 Indicator Breakdown</h3><div class="metrics-grid"><div class="metric-item"><div class="metric-val" id="m-profile">—</div><div class="metric-bar"><div class="metric-fill" id="b-profile" style="width:0%"></div></div><div class="metric-lbl">Profile</div></div><div class="metric-item"><div class="metric-val" id="m-posting">—</div><div class="metric-bar"><div class="metric-fill" id="b-posting" style="width:0%"></div></div><div class="metric-lbl">Posting</div></div><div class="metric-item"><div class="metric-val" id="m-engagement">—</div><div class="metric-bar"><div class="metric-fill" id="b-engagement" style="width:0%"></div></div><div class="metric-lbl">Engagement</div></div><div class="metric-item"><div class="metric-val" id="m-responsiveness">—</div><div class="metric-bar"><div class="metric-fill" id="b-responsiveness" style="width:0%"></div></div><div class="metric-lbl">Responsiveness</div></div><div class="metric-item"><div class="metric-val" id="m-platform">—</div><div class="metric-bar"><div class="metric-fill" id="b-platform" style="width:0%"></div></div><div class="metric-lbl">Platform</div></div></div></div>
+
+  <div class="section-title">API Integrations</div>
+  <div class="platforms-grid">
+    <div class="platform-card" id="card-facebook"><div class="plat-left"><div class="plat-icon">📘</div><div><div class="plat-name">Facebook</div><div class="plat-desc">Posts, engagement, insights</div></div></div><div class="plat-right"><span class="status-pill" id="status-facebook">Not Connected</span><button class="btn btn-connect" id="btn-facebook" onclick="connectFacebook()">Connect</button></div></div>
+    <div class="platform-card" id="card-google"><div class="plat-left"><div class="plat-icon">🔍</div><div><div class="plat-name">Google Business</div><div class="plat-desc">Profile completeness</div></div></div><div class="plat-right"><span class="status-pill" id="status-google">Not Connected</span><button class="btn btn-connect" id="btn-google" onclick="connectGoogle()">Connect</button></div></div>
+  </div>
+
+  <div class="section-title">Manual Data</div>
+  <div class="platforms-grid">
+    <div class="platform-card" id="card-whatsapp"><div class="plat-left" style="flex:1"><div class="plat-icon">💬</div><div style="flex:1"><div class="plat-name">WhatsApp Business</div><div class="plat-desc">Enter messaging metrics</div><div class="manual-form show" id="form-whatsapp"><div class="form-row"><div class="form-group"><label>Avg response time (hrs)</label><input type="number" id="wa-response" placeholder="2" min="0" max="48" value="3"/></div><div class="form-group"><label>Messages per day</label><input type="number" id="wa-messages" placeholder="15" min="0" value="10"/></div></div><div class="form-row"><div class="form-group"><label>Posts / stories per week</label><input type="number" id="wa-posts" placeholder="5" min="0" value="4"/></div><div class="form-group"><label>Profile complete?</label><select id="wa-profile" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--slate, #f8fafc);"><option value="1">Yes</option><option value="0">No</option></select></div></div><button class="btn btn-save" onclick="saveManual('whatsapp')">Save WhatsApp Data</button></div></div></div><div class="plat-right"><span class="status-pill" id="status-whatsapp">Manual</span></div></div>
+    <div class="platform-card" id="card-website"><div class="plat-left" style="flex:1"><div class="plat-icon">🌐</div><div style="flex:1"><div class="plat-name">Business Website</div><div class="plat-desc">Enter website data</div><div class="manual-form show" id="form-website"><div class="form-row"><div class="form-group"><label>Website URL</label><input type="url" id="web-url" placeholder="https://yourbusiness.co.ke"/></div><div class="form-group"><label>Monthly visitors</label><input type="number" id="web-visitors" placeholder="400" min="0" value="200"/></div></div><div class="form-row"><div class="form-group"><label>Blog posts per month</label><input type="number" id="web-posts" placeholder="4" min="0" value="2"/></div><div class="form-group"><label>Contact info visible?</label><select id="web-contact" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--slate, #f8fafc);"><option value="1">Yes</option><option value="0">No</option></select></div></div><button class="btn btn-save" onclick="saveManual('website')">Save Website Data</button></div></div></div><div class="plat-right"><span class="status-pill" id="status-website">Manual</span></div></div>
+  </div>
+
+  <button class="compute-btn" id="compute-btn" onclick="computeAndSave()">🧮 Compute My LDVS Score</button>
+  <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px;">Calculates your Local Digital Visibility Score</p>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/auth.js"></script>
+<script src="js/ldvs.js"></script>
+<script src="js/groq-recommendations.js"></script>
+<script src="js/mock-data.js"></script>
+<script>
+  let currentLang = 'en'; let platformData = {}; let connectedList = [];
+
+  const checkReady = setInterval(() => {
+    if (window.currentUser) {
+      clearInterval(checkReady);
+      const name = currentUser.user_metadata?.business_name || currentUser.email.split('@')[0];
+      DPTTheme.renderMobileNav('connect', name, currentUser.email);
+      loadConnections(); loadLastScore(); loadManualData(); handleOAuthCallback();
+    }
+  }, 100);
+
+  async function handleOAuthCallback() { const { data: { session } } = await sb.auth.getSession(); if (!session) return; const provider = session.user.app_metadata?.provider; if (!provider || provider === 'email') return; const accessToken = session.provider_token; if (!accessToken) return; if (provider === 'google') { await saveConnection('google', accessToken, session.provider_refresh_token); toast('Google connected!', 'success'); } if (provider === 'facebook') { await saveConnection('facebook', accessToken, null); toast('Facebook connected!', 'success'); } loadConnections(); }
+
+  async function saveConnection(platform, accessToken, refreshToken) { await sb.from('dpt_platform_connections').upsert({ user_id: currentUser.id, platform, access_token: accessToken, refresh_token: refreshToken || null, updated_at: new Date().toISOString(), connected_at: new Date().toISOString() }, { onConflict: 'user_id,platform' }); }
+
+  async function loadConnections() { const { data } = await sb.from('dpt_platform_connections').select('*').eq('user_id', currentUser.id); connectedList = data?.map(c => c.platform) || []; ['facebook', 'google'].forEach(p => { if (connectedList.includes(p)) markConnected(p); }); }
+
+  function markConnected(platform) { const card = document.getElementById(`card-${platform}`); const status = document.getElementById(`status-${platform}`); const btn = document.getElementById(`btn-${platform}`); if (!card) return; card.classList.add('connected'); status.textContent = 'Connected'; status.className = 'status-pill connected'; if (btn) { btn.textContent = 'Disconnect'; btn.className = 'btn btn-disconnect'; btn.onclick = () => disconnect(platform); } }
+
+  async function disconnect(platform) { if (!confirm(`Disconnect ${platform}?`)) return; await sb.from('dpt_platform_connections').delete().eq('user_id', currentUser.id).eq('platform', platform); delete platformData[platform]; location.reload(); }
+
+  async function loadManualData() { const { data } = await sb.from('dpt_integrations').select('*').eq('user_id', currentUser.id).in('platform', ['whatsapp', 'website']); data?.forEach(row => { platformData[row.platform] = row.raw_data; if (row.platform === 'whatsapp' && row.raw_data) { document.getElementById('wa-response').value = row.raw_data.responseTime || 3; document.getElementById('wa-messages').value = row.raw_data.messages || 10; document.getElementById('wa-posts').value = row.raw_data.postsPerWeek || 4; document.getElementById('wa-profile').value = row.raw_data.profileComplete || 1; document.getElementById('status-whatsapp').textContent = 'Saved'; document.getElementById('status-whatsapp').className = 'status-pill connected'; document.getElementById('card-whatsapp').classList.add('connected'); } if (row.platform === 'website' && row.raw_data) { document.getElementById('web-url').value = row.raw_data.url || ''; document.getElementById('web-visitors').value = row.raw_data.visitors || 200; document.getElementById('web-posts').value = row.raw_data.posts || 2; document.getElementById('web-contact').value = row.raw_data.contact || 1; document.getElementById('status-website').textContent = 'Saved'; document.getElementById('status-website').className = 'status-pill connected'; document.getElementById('card-website').classList.add('connected'); } }); }
+
+  async function saveManual(platform) { let data = {}; if (platform === 'whatsapp') { data = { responseTime: parseFloat(document.getElementById('wa-response').value) || 3, messages: parseInt(document.getElementById('wa-messages').value) || 10, postsPerWeek: parseInt(document.getElementById('wa-posts').value) || 4, profileComplete: parseInt(document.getElementById('wa-profile').value) || 1 }; } else { data = { url: document.getElementById('web-url').value, visitors: parseInt(document.getElementById('web-visitors').value) || 200, posts: parseInt(document.getElementById('web-posts').value) || 2, contact: parseInt(document.getElementById('web-contact').value) || 1 }; } platformData[platform] = data; await sb.from('dpt_integrations').upsert({ user_id: currentUser.id, platform, raw_data: data, synced_at: new Date().toISOString() }, { onConflict: 'user_id,platform' }); document.getElementById(`status-${platform}`).textContent = 'Saved'; document.getElementById(`status-${platform}`).className = 'status-pill connected'; document.getElementById(`card-${platform}`).classList.add('connected'); toast(`${platform.charAt(0).toUpperCase() + platform.slice(1)} data saved!`, 'success'); }
+
+  async function connectFacebook() { await sb.auth.signInWithOAuth({ provider: 'facebook', options: { scopes: 'pages_read_engagement,pages_show_list,instagram_basic,pages_messaging', redirectTo: window.location.href } }); }
+  async function connectGoogle() { await sb.auth.signInWithOAuth({ provider: 'google', options: { scopes: 'https://www.googleapis.com/auth/business.manage', redirectTo: window.location.href, queryParams: { access_type: 'offline', prompt: 'consent' } } }); }
+
+  async function loadLastScore() { const { data } = await sb.from('dpt_scores').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(1); if (data && data.length > 0) { const s = data[0]; updateScoreBanner(s.score || 0); updateIndicators({ profileScore: s.profile_complete || 0, postingScore: s.post_freq || 0, engagementScore: s.engagement || 0, responsivenessScore: s.responsiveness || 0, platformScore: s.platform_count || 0 }); } }
+
+  async function computeAndSave() { const btn = document.getElementById('compute-btn'); if (btn) { btn.disabled = true; btn.textContent = '🧮 Computing...'; } const fb = platformData.facebook || {}; const wa = platformData.whatsapp || {}; const web = platformData.website || {}; const totalPosts = (fb.posts || 0) + (wa.postsPerWeek ? wa.postsPerWeek * 4 : 0) + (web.posts || 0); const totalInter = fb.interactions || 0; const avgResp = wa.responseTime || fb.responseTime || 12; let profileFieldsFilled = 0, profileFieldsTotal = 0; if (fb.profileComplete !== undefined) { profileFieldsFilled += fb.profileComplete * 7; profileFieldsTotal += 7; } if (wa.profileComplete !== undefined) { profileFieldsFilled += wa.profileComplete; profileFieldsTotal += 1; } if (web.contact !== undefined) { profileFieldsFilled += web.contact; profileFieldsTotal += 1; } if (profileFieldsTotal === 0) { profileFieldsFilled = 2; profileFieldsTotal = 5; } const connected = connectedList.length + (wa.responseTime ? 1 : 0) + (web.url ? 1 : 0); const metrics = { profileFields: profileFieldsFilled, totalFields: profileFieldsTotal, postsLast30Days: totalPosts, totalInteractions: totalInter, numPosts: Math.max(1, fb.posts || 1), avgResponseHours: avgResp, connectedPlatforms: Math.min(6, connected) }; const scores = computeLDVS(metrics); const businessInfo = { businessName: currentUser.user_metadata?.business_name || '', sector: currentUser.user_metadata?.sector || '', location: currentUser.user_metadata?.location || 'Kenya', platforms: connectedList }; const recs = await getGroqRecommendationsBilingual(scores, businessInfo); const { data: saved, error } = await sb.from('dpt_scores').insert({ user_id: currentUser.id, score: scores.ldvs, grade: classifyLDVS(scores.ldvs).grade, profile_complete: scores.profileScore, post_freq: scores.postingScore, engagement: scores.engagementScore, responsiveness: scores.responsivenessScore, platform_count: scores.platformScore, platforms: connectedList, source: 'mixed', created_at: new Date().toISOString() }).select().single(); if (saved && !error) { const recRows = recs.map(r => ({ score_id: saved.id, user_id: currentUser.id, icon: r.icon, priority: r.priority, title_en: r.titleEn || r.title, title_sw: r.titleSw || r.title, desc_en: r.descEn || r.desc, desc_sw: r.descSw || r.desc })); if (recRows.length > 0) await sb.from('dpt_recommendations').insert(recRows); } updateScoreBanner(scores.ldvs); updateIndicators(scores); if (btn) { btn.disabled = false; btn.textContent = '🧮 Compute My LDVS Score'; } toast(`Score computed: ${scores.ldvs} — ${classifyLDVS(scores.ldvs).grade}`, 'success'); setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500); }
+
+  function updateScoreBanner(score) { const cl = classifyLDVS(score); document.getElementById('banner-score').textContent = score; document.getElementById('banner-grade').textContent = cl.grade; }
+  function updateIndicators(s) { const map = { profile: s.profileScore, posting: s.postingScore, engagement: s.engagementScore, responsiveness: s.responsivenessScore, platform: s.platformScore }; Object.entries(map).forEach(([k, v]) => { const val = v || 0; document.getElementById(`m-${k}`).textContent = val; document.getElementById(`b-${k}`).style.width = `${val}%`; document.getElementById(`b-${k}`).style.background = val >= 70 ? '#10b981' : val >= 50 ? '#f59e0b' : '#ef4444'; }); }
+  function setLang(lang) { currentLang = lang; document.getElementById('btn-en').className = lang === 'en' ? 'lang-btn active' : 'lang-btn'; document.getElementById('btn-sw').className = lang === 'sw' ? 'lang-btn active' : 'lang-btn'; }
+  function toast(msg, type = '') { const t = document.getElementById('toast'); t.textContent = msg; t.className = `toast ${type} show`; setTimeout(() => { t.className = 'toast'; }, 3500); }
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+/* Paste your entire theme.css here, and add this block at the very end */
+
+/* ... ALL YOUR EXISTING THEME.CSS CODE ... */
+
+/* ── AUTH PAGES MOBILE FIX ── */
+@media (max-width: 768px) {
+    body.auth-page { grid-template-columns: 1fr !important; }
+    body.auth-page .left { display: none !important; }
+    body.auth-page .form-row { grid-template-columns: 1fr !important; }
+  }
